@@ -1,5 +1,4 @@
 const express = require('express');
-const marked = require('marked')
 const { PrismaClient } = require('@prisma/client');
 
 const app = express();
@@ -26,15 +25,41 @@ app.post('/users/create', async (req, res) => {
     res.json(newUser);
 });
 
+app.post('/social-login', async (req, res) => {
+    const { socialUserId, username, profileImage, socialLoginType } = req.body
+
+    try {
+        let user = await prisma.user.findUnique({
+            where: { socialUserId },
+        })
+
+        if (!user) {
+            user = await prisma.user.create({
+                data: {
+                    socialUserId,
+                    username,
+                    profileImage,
+                    socialLoginType
+                }
+            })
+        }
+
+        res.json({ user })
+    } catch (error) {
+        console.error('Error handling social login', error)
+        res.status(500).json({ error: 'Internal server error' })
+    }
+})
+
 // Rota para obter todas as notas
 app.get('/notes/list', async (req, res) => {
     const notes = await prisma.note.findMany();
     res.json(notes);
 });
 
-app.get('/user/notes/:userId', async (req, res) => {
+app.get('/user/:userId/notes', async (req, res) => {
 
-    const userId = req.params
+    const { userId } = req.params
 
     try {
         const user = await prisma.user.findUnique({
@@ -68,6 +93,42 @@ app.post('/notes/create', async (req, res) => {
     });
     res.json(newNote);
 });
+
+app.put('/notes/:noteId/edit', async (req, res) => {
+    const { noteId } = req.params
+    const { title, content, createdDate } = req.body
+
+    try {
+        const updatedNote = await prisma.note.update({
+            where: { noteId: parseInt(noteId, 10) },
+            data: {
+                title,
+                content,
+                createdDate
+            }
+        })
+
+        res.json(updatedNote)
+    } catch (error) {
+        console.error('Error updating note', error),
+            res.status(500).json({ error: 'Internal server error' })
+    }
+
+})
+
+app.delete('/notes/:noteId/delete', async (req, res) => {
+    const { noteId } = req.params
+
+    try {
+        await prisma.note.delete({
+            where: { noteId: parseInt(noteId, 10) }
+        })
+        res.json({ message: 'Nota excluída!' })
+    } catch (error) {
+        console.error('Error deleting note', error)
+        res.status(500).json({ error: 'Internal Server Error' })
+    }
+})
 
 // Populate
 app.post('/populate', async (req, res) => {
