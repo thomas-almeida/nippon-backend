@@ -3,8 +3,69 @@ const { PrismaClient } = require('@prisma/client');
 
 const app = express();
 const prisma = new PrismaClient();
+const multer = require('multer')
+const path = require('path')
 
 app.use(express.json());
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'att-uploads/')
+    },
+    filename: function (req, file, cb) {
+        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname))
+    }
+})
+
+const upload = multer({ storage: storage })
+
+app.get('/user/:userId', async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        // Busque o usuário no banco de dados pelo ID
+        const user = await prisma.user.findUnique({
+            where: { userId: parseInt(userId, 10) },
+            include: { notes: true }, // Inclua as notas relacionadas ao usuário se necessário
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json(user);
+    } catch (error) {
+        console.error('Error fetching user data:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.post('/note/:noteId/attachment', upload.single('attachment'), async (req, res) => {
+    const { noteId } = req.params
+    const { filename } = req.file
+
+    try {
+        const note = await prisma.note.findUnique({
+            where: { noteId: parseInt(noteId, 10) }
+        })
+
+        if (!note) {
+            return res.status(404).json({ error: 'Note not Found' })
+        }
+
+        const updateNote = await prisma.note.update({
+            where: { noteId: parseInt(noteId, 10) },
+            data: {
+                attachment: filename,
+            }
+        })
+
+        res.json(updateNote)
+    } catch (error) {
+        console.error('Erro ao fazer o attachement: ', error)
+        res.status(500).json({ error: 'Internal server Erro' })
+    }
+})
 
 // Rota para obter todos os usuários
 app.get('/users/list', async (req, res) => {

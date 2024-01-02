@@ -18,6 +18,7 @@ model Note {
   noteId      Int      @id @default(autoincrement())
   title       String
   content     String
+  attachment  String?
   createdDate DateTime
   userId      Int
   user        User     @relation(fields: [userId], references: [userId])

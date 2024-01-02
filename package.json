@@ -13,6 +13,7 @@
     "@prisma/client": "^5.7.0",
     "express": "^4.18.2",
     "marked": "^11.1.0",
+    "multer": "^1.4.5-lts.1",
     "sqlite3": "^5.1.6"
   },
   "devDependencies": {
