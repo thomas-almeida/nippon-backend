@@ -11,6 +11,7 @@ model User {
   userId       Int    @id @default(autoincrement())
   username     String
   profileImage String
+  password     String
   notes        Note[]
 }
 

@@ -5,6 +5,8 @@ const app = express();
 const prisma = new PrismaClient();
 const multer = require('multer')
 const path = require('path')
+const bcrypt = require('bcrypt');
+const { error } = require('console');
 
 app.use(express.json());
 
@@ -18,6 +20,57 @@ const storage = multer.diskStorage({
 })
 
 const upload = multer({ storage: storage })
+
+
+app.post('/signup', async (req, res) => {
+    const { username, password } = req.body;
+
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const newUser = await prisma.user.create({
+            data: {
+                username,
+                password: hashedPassword,
+                profileImage: 'default-profile.png'
+            },
+        });
+
+        res.json({ userId: newUser.userId, username: newUser.username });
+    } catch (error) {
+        console.error('Error creating user:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Endpoint para autenticação de usuário
+app.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+
+    try {
+        const user = await prisma.user.findFirst({
+            where: {
+                username,
+            },
+        });
+
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const passwordMatch = await bcrypt.compare(password, user.password);
+
+        if (!passwordMatch) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        res.json({ userId: user.userId, username: user.username });
+    } catch (error) {
+        console.error('Error handling login:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 
 app.get('/user/:userId', async (req, res) => {
     const { userId } = req.params;
