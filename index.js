@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const multer = require('multer')
 const path = require('path')
 const bcrypt = require('bcrypt');
-const { error } = require('console');
+const PORT = process.env.PORT || 3001;
 
 app.use(express.json());
 
@@ -21,7 +21,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage })
 
-
+// SingnUp
 app.post('/signup', async (req, res) => {
     const { username, password } = req.body;
 
@@ -43,7 +43,7 @@ app.post('/signup', async (req, res) => {
     }
 });
 
-// Endpoint para autenticação de usuário
+// Login
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
@@ -71,7 +71,7 @@ app.post('/login', async (req, res) => {
     }
 });
 
-
+// Pegar o usuario pelo ID
 app.get('/user/:userId', async (req, res) => {
     const { userId } = req.params;
 
@@ -93,6 +93,7 @@ app.get('/user/:userId', async (req, res) => {
     }
 });
 
+// Anexar arquivo á nota
 app.post('/note/:noteId/attachment', upload.single('attachment'), async (req, res) => {
     const { noteId } = req.params
     const { filename } = req.file
@@ -120,57 +121,7 @@ app.post('/note/:noteId/attachment', upload.single('attachment'), async (req, re
     }
 })
 
-// Rota para obter todos os usuários
-app.get('/users/list', async (req, res) => {
-    const users = await prisma.user.findMany();
-    res.json(users);
-});
-
-// Rota para criar um novo usuário
-app.post('/users/create', async (req, res) => {
-    const { username, profileImage, socialLoginType } = req.body;
-    const newUser = await prisma.user.create({
-        data: {
-            username,
-            profileImage,
-            socialLoginType,
-        },
-    });
-    res.json(newUser);
-});
-
-app.post('/social-login', async (req, res) => {
-    const { socialUserId, username, profileImage, socialLoginType } = req.body
-
-    try {
-        let user = await prisma.user.findUnique({
-            where: { socialUserId },
-        })
-
-        if (!user) {
-            user = await prisma.user.create({
-                data: {
-                    socialUserId,
-                    username,
-                    profileImage,
-                    socialLoginType
-                }
-            })
-        }
-
-        res.json({ user })
-    } catch (error) {
-        console.error('Error handling social login', error)
-        res.status(500).json({ error: 'Internal server error' })
-    }
-})
-
-// Rota para obter todas as notas
-app.get('/notes/list', async (req, res) => {
-    const notes = await prisma.note.findMany();
-    res.json(notes);
-});
-
+// Listar Notas por user ID
 app.get('/user/:userId/notes', async (req, res) => {
 
     const { userId } = req.params
@@ -208,6 +159,7 @@ app.post('/notes/create', async (req, res) => {
     res.json(newNote);
 });
 
+// Editar nota
 app.put('/notes/:noteId/edit', async (req, res) => {
     const { noteId } = req.params
     const { title, content, createdDate } = req.body
@@ -230,6 +182,7 @@ app.put('/notes/:noteId/edit', async (req, res) => {
 
 })
 
+// Deletar Nota
 app.delete('/notes/:noteId/delete', async (req, res) => {
     const { noteId } = req.params
 
@@ -244,45 +197,6 @@ app.delete('/notes/:noteId/delete', async (req, res) => {
     }
 })
 
-// Populate
-app.post('/populate', async (req, res) => {
-
-    const usersMocked = [
-        'Thomas Almeida',
-        'Matheus Moreira Dias',
-        'Gustavo Campos',
-        'Murillo Medrado'
-    ]
-
-    const user = await prisma.user.create({
-        data: {
-            username: usersMocked[Math.floor(Math.random() * usersMocked.length)],
-            profileImage: 'chimper_1.png',
-        },
-    })
-
-    const markdownNote = `
-        #Populated Note
-        ## lorem ipsum note
-        This is a markdown note string
-        + list item 1;
-        + list item 2;
-    `
-
-    const note = await prisma.note.create({
-        data: {
-            title: 'Another Note in DB',
-            content: markdownNote,
-            createdDate: new Date(),
-            userId: user.userId
-        }
-    })
-
-    res.json({ user, note })
-
-})
-
-const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
