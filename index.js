@@ -1,5 +1,6 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
+const cors = require('cors')
 
 const app = express();
 const prisma = new PrismaClient();
@@ -9,6 +10,7 @@ const bcrypt = require('bcrypt');
 const PORT = process.env.PORT || 3001;
 
 app.use(express.json());
+app.use(cors())
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -46,27 +48,23 @@ app.post('/signup', async (req, res) => {
 // Login
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-
+    
     try {
         const user = await prisma.user.findFirst({
             where: {
-                username,
+                username
             },
         });
-
-        if (!user) {
-            return res.status(401).json({ error: 'Invalid credentials' });
-        }
 
         const passwordMatch = await bcrypt.compare(password, user.password);
 
         if (!passwordMatch) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+            return res.status(401).json({ error: 'Credenciais Inválidas' });
         }
 
         res.json({ userId: user.userId, username: user.username });
     } catch (error) {
-        console.error('Error handling login:', error.message);
+        console.error('Erro durante login:', error.message);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
